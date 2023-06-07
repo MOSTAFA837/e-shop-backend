@@ -5,7 +5,7 @@ import cookieParser from "cookie-parser";
 import bodyParser from "body-parser";
 import cors from "cors";
 
-import { signup } from "./controller/user.js";
+import { activateSignup, signup } from "./controller/user.js";
 
 const app = express();
 
@@ -21,6 +21,7 @@ if (process.env.NODE_ENV !== "PRODUCTION") {
 }
 
 app.use("/api/user", signup);
+app.use("/api/user", activateSignup);
 
 // error hanler middleware
 app.use(Errorhandler);

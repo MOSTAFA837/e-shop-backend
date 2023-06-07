@@ -1,12 +1,15 @@
 import express from "express";
 import fs from "fs";
 import jwt from "jsonwebtoken";
+import catchAsyncErrors from "../middleware/catchAsyncErrors.js";
 
 import User from "../models/User.js";
 import upload from "../multer.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import path from "path";
 import { sendMail } from "../utils/sendMail.js";
+import Errorhandler from "../utils/errorHandler.js";
+import { sendToken } from "../utils/sendToten.js";
 
 const router = express.Router();
 
@@ -72,3 +75,34 @@ const createActivationToken = (user) => {
     expiresIn: "5m",
   });
 };
+
+export const activateSignup = router.post(
+  "/activation",
+  catchAsyncErrors(async (req, res, next) => {
+    try {
+      const { activation_token } = req.body;
+
+      const newUser = jwt.verify(
+        activation_token,
+        `${process.env.ACTIVATION_TOKEN}`
+      );
+
+      if (!newUser) {
+        return next(new Errorhandler("Invalid token", 400));
+      }
+
+      const { name, email, password, avatar } = newUser;
+
+      let user = await User.findOne({ email });
+      if (user) {
+        return next(new ErrorHandler("User already exists", 400));
+      }
+
+      user = await User.create({ name, email, password, avatar });
+
+      sendToken(user, 201, res);
+    } catch (error) {
+      return next(new Errorhandler(error.message, 500));
+    }
+  })
+);

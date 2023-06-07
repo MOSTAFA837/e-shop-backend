@@ -1,4 +1,4 @@
-import * as dotenv from "dotenv";
+import dotenv from "dotenv";
 import app from "./app.js";
 import connectDatabase from "./db/database.js";
 
@@ -10,9 +10,9 @@ process.on("uncaughtException", (err) => {
 });
 
 // config
-// if (process.env.NODE_ENV !== "PRODUCTION") {
-dotenv.config();
-// }
+if (process.env.NODE_ENV !== "PRODUCTION") {
+  dotenv.config();
+}
 
 // connect db
 connectDatabase();
