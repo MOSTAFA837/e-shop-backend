@@ -8,8 +8,8 @@ import upload from "../multer.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import path from "path";
 import { sendMail } from "../utils/sendMail.js";
-import Errorhandler from "../utils/errorHandler.js";
 import { sendToken } from "../utils/sendToten.js";
+import { isAuthenticated } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -70,12 +70,6 @@ export const signup = router.post(
   }
 );
 
-const createActivationToken = (user) => {
-  return jwt.sign(user, `${process.env.ACTIVATION_SECRET}`, {
-    expiresIn: "5m",
-  });
-};
-
 export const activateSignup = router.post(
   "/activation",
   catchAsyncErrors(async (req, res, next) => {
@@ -88,7 +82,7 @@ export const activateSignup = router.post(
       );
 
       if (!newUser) {
-        return next(new Errorhandler("Invalid token", 400));
+        return next(new ErrorHandler("Invalid token", 400));
       }
 
       const { name, email, password, avatar } = newUser;
@@ -102,7 +96,65 @@ export const activateSignup = router.post(
 
       sendToken(user, 201, res);
     } catch (error) {
-      return next(new Errorhandler(error.message, 500));
+      return next(new ErrorHandler(error.message, 500));
     }
   })
 );
+
+export const login = router.post(
+  "/login-user",
+  catchAsyncErrors(async (req, res, next) => {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return next(new ErrorHandler("Please provide the all fields", 400));
+      }
+
+      const user = await User.findOne({ email }).select("+password");
+
+      if (!user) {
+        return next(new ErrorHandler("User does't exists!", 400));
+      }
+
+      const isPasswordvalid = await user.comparePassword(password);
+
+      if (!isPasswordvalid) {
+        return next(
+          new ErrorHandler("Please provide the correct information.", 400)
+        );
+      }
+
+      sendToken(user, 201, res);
+    } catch (error) {
+      return next(new ErrorHandler(error.message, 500));
+    }
+  })
+);
+
+export const loadUser = router.get(
+  "/get-user",
+  isAuthenticated,
+  catchAsyncErrors(async (req, res, next) => {
+    try {
+      const user = await User.findById(req.user.id);
+
+      if (!user) {
+        return next(new ErrorHandler("User doesn't exists!", 400));
+      }
+
+      res.status(200).json({
+        success: true,
+        user,
+      });
+    } catch (error) {
+      return next(new ErrorHandler(error.message, 400));
+    }
+  })
+);
+
+const createActivationToken = (user) => {
+  return jwt.sign(user, `${process.env.ACTIVATION_SECRET}`, {
+    expiresIn: "5m",
+  });
+};

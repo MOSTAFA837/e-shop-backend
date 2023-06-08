@@ -1,5 +1,5 @@
 export const sendToken = (user, statusCode, res) => {
-  const token = user.getJwtToken();
+  const token = user.getJWT();
 
   // Options for cookies
   const options = {
